@@ -1,0 +1,7 @@
+#pragma once
+#define BombField_VERSION_MAJOR @BombField_VERSION_MAJOR@
+#define BombField_VERSION_MINOR @BombField_VERSION_MINOR@
+
+struct SPota {
+	int value = 5;
+};
