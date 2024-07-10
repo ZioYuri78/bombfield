@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(SRC_FILES
 	src/Bombfield.cpp
 	src/Grid.cpp
+	src/Menu.cpp
 	)
 
 add_executable(BombField)
