@@ -46,39 +46,51 @@ std::ostream& operator<<(std::ostream &os, const SGameSettings &gs) {
 
 
 Menu::Menu() {
-		m_savePresets = nullptr;
-		m_currentGrid = nullptr;
-	};
+	m_savePresets = nullptr;
+	m_currentGrid = nullptr;
+	m_cursorBlinkThr = nullptr;
+	m_startCounter = false;
+	m_pauseUpdate = false;
+};
 
 Menu::~Menu() {
+
+	if(m_savePresets) {
 		delete[] m_savePresets;
-		delete m_currentGrid;
-	};
+	}
+
+	// We deallocate the memory in the main
+	// loop (look at Bombfield.cpp)
+	
+	// delete m_currentGrid;
+	
+};
 
 void Menu::MainMenu() {
 
-		m_savePresets = LoadSaveGameList("./Data/save_game_list.dat", m_maxSaves);
-		
-		printf(DEC_CORNER_UL);
-		for(size_t i=0; i<41; i++){std::cout << DEC_LINE_HOR;}
-		printf(DEC_CORNER_UR);
-		
-		std::cout << '\n';
-		std::cout << DEC_LINE_VERT "                " COL_BF_RED "BOMBFIELD" COL_DEFAULT "                " DEC_LINE_VERT "\n";
-		
-		printf(DEC_CROSS_HL);
-		for(size_t i=0; i<41; i++){std::cout << DEC_LINE_HOR;}
-		printf(DEC_CROSS_HR);
-		std::cout << '\n';
-		
-		printf(DEC_LINE_VERT" %s %s %38s " DEC_LINE_VERT "\n",
-				COL_F_YELLOW "[1]" COL_BF_YELLOW "NEW" COL_DEFAULT,
-				m_savePresets ? COL_F_YELLOW "[2]" COL_BF_YELLOW "LOAD" : COL_F_EXTENDED(100, 75, 0) "[2]LOAD",
-				COL_F_YELLOW "[Q]" COL_BF_YELLOW "QUIT" COL_DEFAULT);
+	delete[] m_savePresets;
+	m_savePresets = LoadSaveGameList("./Data/save_game_list.dat", m_maxSaves);
 
-		printf(DEC_CORNER_BL);
-		for(size_t i=0; i<41; i++){std::cout << DEC_LINE_HOR;}
-		printf(DEC_CORNER_BR);
+	printf(DEC_CORNER_UL);
+	for(size_t i=0; i<41; i++){std::cout << DEC_LINE_HOR;}
+	printf(DEC_CORNER_UR);
+
+	std::cout << '\n';
+	std::cout << DEC_LINE_VERT "                " COL_BF_RED "BOMBFIELD" COL_DEFAULT "                " DEC_LINE_VERT "\n";
+
+	printf(DEC_CROSS_HL);
+	for(size_t i=0; i<41; i++){std::cout << DEC_LINE_HOR;}
+	printf(DEC_CROSS_HR);
+	std::cout << '\n';
+
+	printf(DEC_LINE_VERT" %s %s %38s " DEC_LINE_VERT "\n",
+			COL_F_YELLOW "[1]" COL_BF_YELLOW "NEW" COL_DEFAULT,
+			m_savePresets ? COL_F_YELLOW "[2]" COL_BF_YELLOW "LOAD" : COL_F_EXTENDED(100, 75, 0) "[2]LOAD",
+			COL_F_YELLOW "[Q]" COL_BF_YELLOW "QUIT" COL_DEFAULT);
+
+	printf(DEC_CORNER_BL);
+	for(size_t i=0; i<41; i++){std::cout << DEC_LINE_HOR;}
+	printf(DEC_CORNER_BR);
 }
 
 
@@ -141,14 +153,14 @@ Grid *Menu::NewGame(const char *presets_path) {
 	do{
 		value = _getch();
 		if(has_presets && value >= '0' && value <= '9'){
-			int grid_start_row = 4;
-			int grid_start_column = 1;
+			int m_currentGrid_start_row = 4;
+			int m_currentGrid_start_column = 1;
 			m_currentPreset = game_presets[value-'0'];
 			int numRows = m_currentPreset.m_numberOfRows;
 			int numCols = m_currentPreset.m_numberOfColumns;
 			float bombsRatio = m_currentPreset.m_bombsRatio;
 			bool hasCounter = m_currentPreset.m_isTimed;
-			m_currentGrid = new Grid(grid_start_row, grid_start_column, numRows, numCols, bombsRatio);
+			m_currentGrid = new Grid(m_currentGrid_start_row, m_currentGrid_start_column, numRows, numCols, bombsRatio);
 			break;
 		}
 	}while(value != 'b');
@@ -162,7 +174,7 @@ Grid *Menu::NewGame(const char *presets_path) {
 // ================= //
 Grid *Menu::LoadGame() {
 
-	Grid *grid = nullptr;
+	m_currentGrid = nullptr;
 
 	if(m_savePresets) {
 		std::cout << CUR_MOVE_UP "\r";
@@ -201,26 +213,26 @@ Grid *Menu::LoadGame() {
 			value = _getch();
 			if(value >= '0' && value < (char)(m_maxSaves+'0')){
 				m_currentPreset = m_savePresets[value-'0'];
-				grid = Load(m_currentPreset);
+				m_currentGrid = Load(m_currentPreset);
 				break;
 			}
 		}while(value != 'b');
 	}
-	return grid;
+	return m_currentGrid;
 }
 
 
 // ================= //
 // === SAVE GAME === //
 // ================= //
-bool Menu::SaveGame(SGameSettings &preset, Grid &grid) {
+bool Menu::SaveGame(SGameSettings &preset, Grid &m_currentGrid) {
 	
 	int width = 0;
-	grid.GetNumOfColumns() < 6 
-		? width = 6 * grid.GetColumnStride() + 3 
-		: width = (grid.GetNumOfColumns()*grid.GetColumnStride()) + 3;
+	m_currentGrid.GetNumOfColumns() < 6 
+		? width = 6 * m_currentGrid.GetColumnStride() + 3 
+		: width = (m_currentGrid.GetNumOfColumns()*m_currentGrid.GetColumnStride()) + 3;
 	
-	int height = grid.GetNumOfRows() * grid.GetRowStride() + grid.GetStartRow()+grid.GetTopBorderSize();
+	int height = m_currentGrid.GetNumOfRows() * m_currentGrid.GetRowStride() + m_currentGrid.GetStartRow()+m_currentGrid.GetTopBorderSize();
 
 	std::cout << 
 		CUR_SAVE 
@@ -272,7 +284,7 @@ bool Menu::SaveGame(SGameSettings &preset, Grid &grid) {
 		return false;
 	}
 
-	fwrite(&grid, sizeof(Grid), 1, data);
+	fwrite(&m_currentGrid, sizeof(Grid), 1, data);
 	fclose(data);
 
 	std::this_thread::sleep_for(500ms);
@@ -288,6 +300,74 @@ bool Menu::SaveGame(SGameSettings &preset, Grid &grid) {
 		CUR_SHOW;
 	
 	return true;
+}
+
+
+void Menu::Header() {
+
+		m_headerWidth = 0;
+		m_currentGrid->GetNumOfColumns() < 6 
+			? m_headerWidth = 6 * m_currentGrid->GetColumnStride() 
+			: m_headerWidth = (m_currentGrid->GetNumOfColumns()*m_currentGrid->GetColumnStride());
+		
+		printf(DEC_CORNER_UL);
+		for(size_t hs = 0; hs < m_headerWidth-1; hs++) { std::cout << DEC_LINE_HOR;	}
+		printf(DEC_CORNER_UR);
+		std::cout << "\n";
+
+
+		printf("%-*s " COL_BF_RED "[%03d]" COL_DEFAULT "  %2s  " COL_BF_GREEN "[%03d]" COL_DEFAULT " %*s\n",
+				m_currentGrid->GetNumOfColumns() < 6
+				? 3
+				: m_headerWidth/2 - 8,
+				DEC_LINE_VERT, 
+				m_currentGrid->GetTotalBombs(), 
+				":)", 
+				m_currentPreset.m_isTimed ? m_currentPreset.m_timeElapsed : 999,
+				m_currentGrid->GetNumOfColumns() < 6
+				? 4
+				: m_headerWidth/2 - 9,
+				DEC_LINE_VERT
+				);
+
+		printf(DEC_CORNER_BL);
+		for(size_t hs = 0; hs < m_headerWidth-1; hs++) { std::cout << DEC_LINE_HOR; }
+		printf(DEC_CORNER_BR);
+		std::cout << '\n';
+}
+
+void Menu::Footer() {
+
+		m_footerWidth = 0;
+		m_currentGrid->GetNumOfColumns() < 6
+			? m_footerWidth = 6 * m_currentGrid->GetColumnStride() + 3
+			: m_footerWidth = (m_currentGrid->GetNumOfColumns()*m_currentGrid->GetColumnStride()) + 3;
+	
+
+		printf( DEC_LINE_VERT " %s %*s " DEC_LINE_VERT "\n",
+				COL_F_YELLOW "[S]" COL_BF_YELLOW "SAVE" COL_DEFAULT,
+				m_footerWidth,
+				COL_F_YELLOW "[M]" COL_BF_YELLOW "MENU" COL_DEFAULT
+				);
+}
+
+void Menu::StartCounter() {
+
+	m_pauseUpdate = false;
+	m_startCounter = false;
+
+	m_cursorBlinkThr = new std::thread(
+			&Menu::UpdateCounter,
+			this,
+			m_currentGrid->GetNumOfColumns() < 6
+			? (m_headerWidth/2)+5
+			: (m_headerWidth/2)+6
+			);
+}
+
+void Menu::StopCounter() {
+	m_cursorBlinkThr->join();
+	delete m_cursorBlinkThr;
 }
 
 
@@ -402,3 +482,24 @@ Grid *Menu::Load(const SGameSettings &preset) {
 	return g;
 }
 
+// ====================== //
+// === UPDATE COUNTER === //
+// ====================== //
+void Menu::UpdateCounter(int cur_pos) {
+
+	bool flip_flop = true;
+	while(m_currentGrid->GetState() == EGridState::NONE) {
+		if(m_pauseUpdate) {
+			std::cout << CUR_HIDE;
+			continue;
+		}
+		printf("%s", flip_flop ? CUR_SHOW : CUR_HIDE);
+		flip_flop = !flip_flop;
+		std::this_thread::sleep_for(500ms);
+		if(m_currentPreset.m_isTimed && m_startCounter && flip_flop) {
+			std::cout << CUR_SAVE CUR_HIDE;
+			printf(CUR_MOVE_TO COL_BF_GREEN "%03d" COL_DEFAULT, 2, cur_pos, ++m_currentPreset.m_timeElapsed);
+			std::cout << CUR_LOAD CUR_SHOW;
+		}
+	}
+}

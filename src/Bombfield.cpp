@@ -28,7 +28,6 @@ int main(int argc, char **argv) {
 	}
 
 
-	bool hasCounter = true;
 	bool mainQuit = false;
 
 	Menu menu = Menu();
@@ -93,35 +92,7 @@ int main(int argc, char **argv) {
 			CUR_TO_ORIGIN;
 
 		// HEADER: the number of bombs, smiley and time elapsed
-		int header_width = 0;
-		grid->GetNumOfColumns() < 6 
-			? header_width = 6 * grid->GetColumnStride() 
-			: header_width = (grid->GetNumOfColumns()*grid->GetColumnStride());
-		
-		printf(DEC_CORNER_UL);
-		for(size_t hs = 0; hs < header_width-1; hs++) { std::cout << DEC_LINE_HOR;	}
-		printf(DEC_CORNER_UR);
-		std::cout << "\n";
-
-
-		printf("%-*s " COL_BF_RED "[%03d]" COL_DEFAULT "  %2s  " COL_BF_GREEN "[%03d]" COL_DEFAULT " %*s\n",
-				grid->GetNumOfColumns() < 6
-				? 3
-				: header_width/2 - 8,
-				DEC_LINE_VERT, 
-				grid->GetTotalBombs(), 
-				":)", 
-				hasCounter ? menu.GetCurrentPreset()->m_timeElapsed : 999,
-				grid->GetNumOfColumns() < 6
-				? 4
-				: header_width/2 - 9,
-				DEC_LINE_VERT
-				);
-
-		printf(DEC_CORNER_BL);
-		for(size_t hs = 0; hs < header_width-1; hs++) { std::cout << DEC_LINE_HOR; }
-		printf(DEC_CORNER_BR);
-		std::cout << '\n';
+		menu.Header();
 
 		// GRID
 		grid->Draw();
@@ -129,17 +100,8 @@ int main(int argc, char **argv) {
 		printf(DEC_MODE);
 
 		// FOOTER
-		int footer_width = 0;
-		grid->GetNumOfColumns() < 6
-			? footer_width = 6 * grid->GetColumnStride() + 3
-			: footer_width = (grid->GetNumOfColumns()*grid->GetColumnStride()) + 3;
-	
+		menu.Footer();
 
-		printf( DEC_LINE_VERT " %s %*s " DEC_LINE_VERT "\n",
-				COL_F_YELLOW "[S]" COL_BF_YELLOW "SAVE" COL_DEFAULT,
-				footer_width,
-				COL_F_YELLOW "[M]" COL_BF_YELLOW "MENU" COL_DEFAULT
-				);
 
 		cursor_row = grid->GetStartRow() + grid->GetTopBorderSize();
 		cursor_column = grid->GetStartColumn() + grid->GetLeftBorderSize();
@@ -147,23 +109,14 @@ int main(int argc, char **argv) {
 		
 		bool pause_update = false;
 
-		std::thread timer_thr = std::thread(
-				&UpdateCounter, 
-				std::ref(*grid), 
-				std::ref(pause_update), 
-				hasCounter ? &start_counter : nullptr, 
-				std::ref(menu.GetCurrentPreset()->m_timeElapsed), 
-				grid->GetNumOfColumns() < 6
-				? (header_width/2)+5
-				: (header_width/2)+6
-				);
+		menu.StartCounter();
 
 		// Main loop
 		while(grid->GetState() == EGridState::NONE) {
-			PoolInputs(menu, start_counter, cursor_row, cursor_column, pause_update);
+			PoolInputs(menu, cursor_row, cursor_column);
 		}
 		
-		timer_thr.join();
+		menu.StopCounter();
 
 		auto message = [&](const char *msg) {
 			int width = 0;
@@ -210,7 +163,7 @@ int main(int argc, char **argv) {
 			for(size_t i=0; i<8; i++) {
 
 				printf(DEC_LINE_VERT "%-*s" COL_F_YELLOW "%-*.*s" COL_BF_YELLOW "%-*.*s" COL_DEFAULT DEC_LINE_VERT "\r",
-						footer_width - 12,
+						menu.GetFooterWidth() - 12,
 						" ",
 						i < 4 ? 3 : 0,
 						(int)i,
@@ -245,9 +198,9 @@ int main(int argc, char **argv) {
 // =================== //
 // === POOL INPUTS === //
 // =================== //
-void PoolInputs(Menu &menu, bool &start_counter, int &cur_x, int &cur_y, bool &pause_update) {
+void PoolInputs(Menu &menu, int &cur_x, int &cur_y) {
 
-	Grid grid = *menu.GetCurrentGrid();
+	Grid *grid = menu.GetCurrentGrid();
 
 	switch (_getch()) {
 
@@ -256,29 +209,29 @@ void PoolInputs(Menu &menu, bool &start_counter, int &cur_x, int &cur_y, bool &p
 			switch(_getch()) {
 				case 72:
 					// UP
-					if(cur_x > grid.GetStartRow() + grid.GetTopBorderSize()) {
-						cur_x-=grid.GetRowStride();
+					if(cur_x > grid->GetStartRow() + grid->GetTopBorderSize()) {
+						cur_x-=grid->GetRowStride();
 					}
 					break;
 
 				case 75:
 					// LEFT
-					if(cur_y > grid.GetStartColumn() + grid.GetLeftBorderSize()) {
-						cur_y-=grid.GetColumnStride();
+					if(cur_y > grid->GetStartColumn() + grid->GetLeftBorderSize()) {
+						cur_y-=grid->GetColumnStride();
 					}
 					break;
 
 				case 77:
 					// RIGHT
-					if(cur_y < grid.GetNumOfColumns()*grid.GetColumnStride() + grid.GetStartColumn() - grid.GetColumnStride()) {
-						cur_y+=grid.GetColumnStride();
+					if(cur_y < grid->GetNumOfColumns()*grid->GetColumnStride() + grid->GetStartColumn() - grid->GetColumnStride()) {
+						cur_y+=grid->GetColumnStride();
 					}
 					break;
 
 				case 80:
 					// DOWN
-					if(cur_x < grid.GetNumOfRows()*grid.GetRowStride() + grid.GetStartRow() - grid.GetRowStride()) {
-						cur_x+=grid.GetRowStride();
+					if(cur_x < grid->GetNumOfRows()*grid->GetRowStride() + grid->GetStartRow() - grid->GetRowStride()) {
+						cur_x+=grid->GetRowStride();
 					}
 					break;
 			}
@@ -287,21 +240,21 @@ void PoolInputs(Menu &menu, bool &start_counter, int &cur_x, int &cur_y, bool &p
 		case 13:
 			// ENTER
 			std::cout << CUR_SAVE;
-			grid.EndGameConditions((cur_x-grid.GetStartRow())/grid.GetRowStride(), (cur_y-grid.GetStartColumn())/grid.GetColumnStride());
+			grid->EndGameConditions((cur_x-grid->GetStartRow())/grid->GetRowStride(), (cur_y-grid->GetStartColumn())/grid->GetColumnStride());
 			std::cout << CUR_LOAD;
-			if(!start_counter) start_counter = true;
+			if(!menu.IsCounterRunning()) menu.StartCounter2();
 			break;
 		
 		case 's':
 		case 'S':
-			pause_update = true;
-			menu.SaveGame(*menu.GetCurrentPreset(), grid);
-			pause_update = false;
+			menu.PauseUpdate(true);
+			menu.SaveGame(*menu.GetCurrentPreset(), *grid);
+			menu.PauseUpdate(false);
 			break;
 		
 		case 'm':
 		case 'M':
-			grid.QuitGrid();
+			grid->QuitGrid();
 			break;
 
 		default:
@@ -313,24 +266,3 @@ void PoolInputs(Menu &menu, bool &start_counter, int &cur_x, int &cur_y, bool &p
 }
 
 
-// ====================== //
-// === UPDATE COUNTER === //
-// ====================== //
-void UpdateCounter(Grid &grid, bool &pause_update, bool *start_counter, int &time_elapsed, int cur_pos) {
-
-	bool flip_flop = true;
-	while(grid.GetState() == EGridState::NONE) {
-		if(pause_update) {
-			std::cout << CUR_HIDE;
-			continue;
-		}
-		printf("%s", flip_flop ? CUR_SHOW : CUR_HIDE);
-		flip_flop = !flip_flop;
-		std::this_thread::sleep_for(500ms);
-		if(start_counter && *start_counter && flip_flop) {
-			std::cout << CUR_SAVE CUR_HIDE;
-			printf(CUR_MOVE_TO COL_BF_GREEN "%03d" COL_DEFAULT, 2, cur_pos, ++time_elapsed);
-			std::cout << CUR_LOAD CUR_SHOW;
-		}
-	}
-}
