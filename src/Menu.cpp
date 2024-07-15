@@ -305,50 +305,13 @@ bool Menu::SaveGame(SGameSettings &preset, Grid &m_currentGrid) {
 
 void Menu::Header() {
 
-		m_headerWidth = 0;
-		m_currentGrid->GetNumOfColumns() < 6 
-			? m_headerWidth = 6 * m_currentGrid->GetColumnStride() 
-			: m_headerWidth = (m_currentGrid->GetNumOfColumns()*m_currentGrid->GetColumnStride());
-		
-		printf(DEC_CORNER_UL);
-		for(size_t hs = 0; hs < m_headerWidth-1; hs++) { std::cout << DEC_LINE_HOR;	}
-		printf(DEC_CORNER_UR);
-		std::cout << "\n";
-
-
-		printf("%-*s " COL_BF_RED "[%03d]" COL_DEFAULT "  %2s  " COL_BF_GREEN "[%03d]" COL_DEFAULT " %*s\n",
-				m_currentGrid->GetNumOfColumns() < 6
-				? 3
-				: m_headerWidth/2 - 8,
-				DEC_LINE_VERT, 
-				m_currentGrid->GetTotalBombs(), 
-				":)", 
-				m_currentPreset.m_isTimed ? m_currentPreset.m_timeElapsed : 999,
-				m_currentGrid->GetNumOfColumns() < 6
-				? 4
-				: m_headerWidth/2 - 9,
-				DEC_LINE_VERT
-				);
-
-		printf(DEC_CORNER_BL);
-		for(size_t hs = 0; hs < m_headerWidth-1; hs++) { std::cout << DEC_LINE_HOR; }
-		printf(DEC_CORNER_BR);
-		std::cout << '\n';
+	m_headerWidth = 50;
 }
 
 void Menu::Footer() {
 
-		m_footerWidth = 0;
-		m_currentGrid->GetNumOfColumns() < 6
-			? m_footerWidth = 6 * m_currentGrid->GetColumnStride() + 3
-			: m_footerWidth = (m_currentGrid->GetNumOfColumns()*m_currentGrid->GetColumnStride()) + 3;
-	
+	m_footerWidth = 50;
 
-		printf( DEC_LINE_VERT " %s %*s " DEC_LINE_VERT "\n",
-				COL_F_YELLOW "[S]" COL_BF_YELLOW "SAVE" COL_DEFAULT,
-				m_footerWidth,
-				COL_F_YELLOW "[M]" COL_BF_YELLOW "MENU" COL_DEFAULT
-				);
 }
 
 void Menu::StartCounter() {

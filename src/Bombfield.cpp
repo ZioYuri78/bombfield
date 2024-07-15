@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 			CUR_TO_ORIGIN;
 
 		// HEADER: the number of bombs, smiley and time elapsed
-		menu.Header();
+		//menu.Header();
 
 		// GRID
 		grid->Draw();
@@ -109,50 +109,14 @@ int main(int argc, char **argv) {
 		
 		bool pause_update = false;
 
-		menu.StartCounter();
+		//menu.StartCounter();
 
 		// Main loop
 		while(grid->GetState() == EGridState::NONE) {
 			PoolInputs(menu, cursor_row, cursor_column);
 		}
 		
-		menu.StopCounter();
-
-		auto message = [&](const char *msg) {
-			int width = 0;
-			grid->GetNumOfColumns() < 6
-				? width = 6 * grid->GetColumnStride()
-				: width = grid->GetNumOfColumns() * grid->GetColumnStride();
-
-			printf(CUR_MOVE_TO_(2, 1));
-			std::printf("%*s", width, " ");
-			printf(CUR_MOVE_TO_(2, 1));
-			std::printf("%-*s%s%*s\n",
-					grid->GetNumOfColumns()< 6
-					? 8
-					: width/2 - 4, 
-					DEC_LINE_VERT, 
-					msg, 
-					grid->GetNumOfColumns() < 6
-					? 9
-					: width/2 - 3, 
-					DEC_LINE_VERT
-					);
-		};
-
-
-		switch (grid->GetState()) {
-			case EGridState::WON:
-				message(WINDOW_TITLE("YOU WON!") COL_BF_GREEN "YOU WON!" COL_DEFAULT);
-				break;
-			case EGridState::LOST:
-				message(WINDOW_TITLE("BOOOOOM!") COL_BF_RED "BOOOOOM!" COL_DEFAULT);
-				break;
-			case EGridState::QUIT:
-			case EGridState::NONE:
-			default:
-				break;
-		}
+		//menu.StopCounter();
 
 		EGridState grid_state = grid->GetState();
 		if(grid_state == EGridState::WON || grid_state == EGridState::LOST) {
@@ -242,14 +206,17 @@ void PoolInputs(Menu &menu, int &cur_x, int &cur_y) {
 			std::cout << CUR_SAVE;
 			grid->EndGameConditions((cur_x-grid->GetStartRow())/grid->GetRowStride(), (cur_y-grid->GetStartColumn())/grid->GetColumnStride());
 			std::cout << CUR_LOAD;
-			if(!menu.IsCounterRunning()) menu.StartCounter2();
+			//if(!menu.IsCounterRunning()) menu.StartCounter2();
+			grid->StartCounter();
 			break;
 		
 		case 's':
 		case 'S':
-			menu.PauseUpdate(true);
+			//menu.PauseUpdate(true);
+			grid->PauseCounter();
 			menu.SaveGame(*menu.GetCurrentPreset(), *grid);
-			menu.PauseUpdate(false);
+			grid->PauseCounter();
+			//menu.PauseUpdate(false);
 			break;
 		
 		case 'm':

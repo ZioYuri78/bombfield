@@ -29,7 +29,6 @@ struct SGameSettings {
 };
 
 class Grid;
-class thread;
 
 class Menu {
 

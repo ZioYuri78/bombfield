@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <ostream>
+#include <thread>
 
 enum class EGridState :uint8_t {
 	WON,
@@ -35,40 +36,54 @@ public:
 	void RevealCell(int x, int y);
 	void Draw();
 	void EndGameConditions(int x, int y);
+	void StopCounter();
 
 	inline EGridState GetState() {return m_state;}
 	inline void QuitGrid() {m_state = EGridState::QUIT;}
-	inline int GetNumOfRows() {return m_num_of_rows;}
-	inline int GetNumOfColumns() {return m_num_of_columns;}
-	inline int GetRowStride() {return m_row_stride;}
-	inline int GetColumnStride() {return m_column_stride;}
-	inline int GetStartRow() {return m_start_row;}
-	inline int GetStartColumn() {return m_start_column;}
-	inline int GetTopBorderSize() {return m_top_border_size;}
-	inline int GetLeftBorderSize(){return m_left_border_size;}
-	inline int GetTotalBombs() {return m_total_bombs;}
-	inline int GetTotalCells() {return m_total_cells;}
+	inline int GetNumOfRows() {return m_numOfRows;}
+	inline int GetNumOfColumns() {return m_numOfColumns;}
+	inline int GetRowStride() {return m_rowStride;}
+	inline int GetColumnStride() {return m_columnStride;}
+	inline int GetStartRow() {return m_startRow;}
+	inline int GetStartColumn() {return m_startColumn;}
+	inline int GetTopBorderSize() {return m_topBorderSize;}
+	inline int GetLeftBorderSize(){return m_leftBorderSize;}
+	inline int GetTotalBombs() {return m_totalBombs;}
+	inline int GetTotalCells() {return m_totalCells;}
 	inline FCell *GetCellAt(int x, int y) {return &m_cells[x][y];}
+
+	inline void StartCounter(){ m_startCounter = true;}
+	inline void PauseCounter(){m_pauseCounter = !m_pauseCounter;}
 
 private:
 
+	void UpdateCursorAndCounter();
+	
+	bool m_startCounter;
+	bool m_pauseCounter;
+
 	EGridState m_state;
 
-	int m_total_cells;
-	int m_total_revealed;
+
+	int m_totalCells;
+	int m_totalRevealed;
 	
-	int m_num_of_rows;
-	int m_num_of_columns;
-	int m_row_stride;
-	int m_column_stride;
+	int m_numOfRows;
+	int m_numOfColumns;
+	int m_rowStride;
+	int m_columnStride;
 
-	int m_start_row;
-	int m_start_column;
+	int m_startRow;
+	int m_startColumn;
 
-	int m_top_border_size;
-	int m_left_border_size;
-	int m_total_bombs;
-	float m_bombs_ratio;
+	int m_topBorderSize;
+	int m_leftBorderSize;
+	int m_headerWidth;
+	int m_footerWidth;
+	int m_totalBombs;
+	float m_bombsRatio;
 
 	FCell m_cells[50][50];
+
+	std::thread m_cursorAndCounterUpdater;
 };
