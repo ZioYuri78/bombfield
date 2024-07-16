@@ -2,5 +2,5 @@
 
 class Menu;
 
-void PoolInputs(Menu &menu,	int &cursorX, int &cursorY); 
+void PoolInputs(Menu &_menu, int &_curX, int &_curY); 
 

@@ -12,45 +12,42 @@
 using namespace std::chrono_literals;
 
 SGameSettings::SGameSettings(
-		int id, 
-		const char *name, 
-		int numOfRows, 
-		int numberOfColumns, 
-		float bombsRatio, 
-		bool isTimed, 
-		int timeElapsed/* = 0*/)
-{
-	m_id = id;
-	assert(strlen(name) <= 16);
-	strcpy_s(m_name, name);
-	m_numberOfRows = numOfRows;
-	m_numberOfColumns = numberOfColumns;
-	m_bombsRatio = bombsRatio;
-	m_isTimed = isTimed;
-	m_timeElapsed = timeElapsed;
+		int _id, 
+		const char *_name, 
+		int _numOfRows, 
+		int _numberOfColumns, 
+		float _bombsRatio, 
+		bool _isTimed, 
+		int _timeElapsed/* = 0*/
+		) {
+	m_id = _id;
+	assert(strlen(_name) <= 16);
+	strcpy_s(m_name, _name);
+	m_numberOfRows = _numOfRows;
+	m_numberOfColumns = _numberOfColumns;
+	m_bombsRatio = _bombsRatio;
+	m_isTimed = _isTimed;
+	m_timeElapsed = _timeElapsed;
 
 }
 
-std::ostream& operator<<(std::ostream &os, const SGameSettings &gs) {
+std::ostream& operator<<(std::ostream &_os, const SGameSettings &_gs) {
 	char description[64];
 	sprintf(description, "%-16s %2dx%-2d %3.0f%% %6s", 
-			gs.m_name, 
-			gs.m_numberOfRows, 
-			gs.m_numberOfColumns, 
-			gs.m_bombsRatio*100, 
-			gs.m_isTimed ? "yes" : "no"
+			_gs.m_name, 
+			_gs.m_numberOfRows, 
+			_gs.m_numberOfColumns, 
+			_gs.m_bombsRatio*100, 
+			_gs.m_isTimed ? "yes" : "no"
 		   );
-	os << description;
-	return os;
+	_os << description;
+	return _os;
 }
 
 
 Menu::Menu() {
 	m_savePresets = nullptr;
 	m_currentGrid = nullptr;
-	m_cursorBlinkThr = nullptr;
-	m_startCounter = false;
-	m_pauseUpdate = false;
 };
 
 Menu::~Menu() {
@@ -97,7 +94,7 @@ void Menu::MainMenu() {
 // ================ //
 // === NEW GAME === //
 // ================ //
-Grid *Menu::NewGame(const char *presets_path) {
+Grid *Menu::NewGame(const char *_presetsPath) {
 
 	m_currentGrid = nullptr;
 
@@ -120,16 +117,16 @@ Grid *Menu::NewGame(const char *presets_path) {
 	for(size_t i=0; i<39; i++){std::cout << DEC_LINE_HOR;}
 	std::cout << " " DEC_LINE_VERT "\n";
 
-	SGameSettings game_presets[10];
-	bool has_presets = LoadPresets(presets_path, game_presets);
+	SGameSettings gamePresets[10];
+	bool hasPresets = LoadPresets(_presetsPath, gamePresets);
 	
-	if(has_presets) {
+	if(hasPresets) {
 
 		for(size_t i=0; i<10; i++) {
 			std::cout << 
 				DEC_LINE_VERT 
 				" " 
-				COL_BF_YELLOW ASCII_MODE "[0" << i << "] " << game_presets[i] << DEC_MODE COL_DEFAULT 
+				COL_BF_YELLOW ASCII_MODE "[0" << i << "] " << gamePresets[i] << DEC_MODE COL_DEFAULT 
 				" " 
 				DEC_LINE_VERT 
 				"\n";
@@ -152,15 +149,17 @@ Grid *Menu::NewGame(const char *presets_path) {
 	int value = 0;
 	do{
 		value = _getch();
-		if(has_presets && value >= '0' && value <= '9'){
-			int m_currentGrid_start_row = 4;
-			int m_currentGrid_start_column = 1;
-			m_currentPreset = game_presets[value-'0'];
-			int numRows = m_currentPreset.m_numberOfRows;
-			int numCols = m_currentPreset.m_numberOfColumns;
-			float bombsRatio = m_currentPreset.m_bombsRatio;
-			bool hasCounter = m_currentPreset.m_isTimed;
-			m_currentGrid = new Grid(m_currentGrid_start_row, m_currentGrid_start_column, numRows, numCols, bombsRatio);
+		if(hasPresets && value >= '0' && value <= '9'){
+			m_currentPreset = gamePresets[value-'0'];
+			m_currentGrid = new Grid(
+					4, 
+					1, 
+					m_currentPreset.m_numberOfRows,
+					m_currentPreset.m_numberOfColumns, 
+					m_currentPreset.m_bombsRatio,  
+					m_currentPreset.m_isTimed,     
+					m_currentPreset.m_timeElapsed
+					);
 			break;
 		}
 	}while(value != 'b');
@@ -213,11 +212,12 @@ Grid *Menu::LoadGame() {
 			value = _getch();
 			if(value >= '0' && value < (char)(m_maxSaves+'0')){
 				m_currentPreset = m_savePresets[value-'0'];
-				m_currentGrid = Load(m_currentPreset);
+				m_currentGrid = LoadGrid(m_currentPreset);
 				break;
 			}
 		}while(value != 'b');
 	}
+
 	return m_currentGrid;
 }
 
@@ -264,10 +264,10 @@ bool Menu::SaveGame(SGameSettings &preset, Grid &m_currentGrid) {
 	
 	long offset = 0;
 	fseek(data, 0, SEEK_END);
-	size_t file_size = ftell(data);
-	int num_saves = file_size/sizeof(SGameSettings);
-	if(num_saves < preset.m_id + 1) {
-		preset.m_id = num_saves;
+	size_t fileSize = ftell(data);
+	int numSaves = fileSize/sizeof(SGameSettings);
+	if(numSaves < preset.m_id + 1) {
+		preset.m_id = numSaves;
 	}
 	offset = preset.m_id;
 
@@ -284,7 +284,7 @@ bool Menu::SaveGame(SGameSettings &preset, Grid &m_currentGrid) {
 		return false;
 	}
 
-	fwrite(&m_currentGrid, sizeof(Grid), 1, data);
+	fwrite(&m_currentGrid, sizeof(Grid) - sizeof(std::thread), 1, data);
 	fclose(data);
 
 	std::this_thread::sleep_for(500ms);
@@ -302,57 +302,25 @@ bool Menu::SaveGame(SGameSettings &preset, Grid &m_currentGrid) {
 	return true;
 }
 
-
-void Menu::Header() {
-
-	m_headerWidth = 50;
-}
-
-void Menu::Footer() {
-
-	m_footerWidth = 50;
-
-}
-
-void Menu::StartCounter() {
-
-	m_pauseUpdate = false;
-	m_startCounter = false;
-
-	m_cursorBlinkThr = new std::thread(
-			&Menu::UpdateCounter,
-			this,
-			m_currentGrid->GetNumOfColumns() < 6
-			? (m_headerWidth/2)+5
-			: (m_headerWidth/2)+6
-			);
-}
-
-void Menu::StopCounter() {
-	m_cursorBlinkThr->join();
-	delete m_cursorBlinkThr;
-}
-
-
 // About save_game_list.dat content:
 // No more than 10 saves and we assume that ID go from 0 to 9
 // So the first entry in the list has ID = 0 and refer to 
 // file save_00.dat
-SGameSettings *Menu::LoadSaveGameList(const char *path, size_t &list_lenght) {
+SGameSettings *Menu::LoadSaveGameList(const char *_path, size_t &_listLenght) {
 
 	SGameSettings *gs = nullptr;
-	FILE *data = fopen(path, "rb");
+	FILE *data = fopen(_path, "rb");
 	if(data) {	
 
 		fseek(data, 0, SEEK_END);
 
-		list_lenght = ftell(data)/sizeof(SGameSettings);
-		if(list_lenght > 0) {
+		_listLenght = ftell(data)/sizeof(SGameSettings);
+		if(_listLenght > 0) {
 
-			gs = new SGameSettings[list_lenght];
+			gs = new SGameSettings[_listLenght];
 			fseek(data,0, SEEK_SET);
 
-			for(size_t i=0; i<list_lenght; i++) {
+			for(size_t i=0; i<_listLenght; i++) {
 				fread(&gs[i], sizeof(SGameSettings), 1, data);
 			}
 		}
@@ -367,9 +335,9 @@ SGameSettings *Menu::LoadSaveGameList(const char *path, size_t &list_lenght) {
 // ==================== //
 // === LOAD PRESETS === //
 // ==================== //
-bool Menu::LoadPresets(const char *path, SGameSettings *presets) {
+bool Menu::LoadPresets(const char *_path, SGameSettings *_presets) {
 
-	FILE *data = fopen(path, "r");
+	FILE *data = fopen(_path, "r");
 	if(!data) {
 		return false;
 	}
@@ -384,8 +352,8 @@ bool Menu::LoadPresets(const char *path, SGameSettings *presets) {
 			i--;
 			continue;
 		}
-		if(presets) {
-			presets[i] = 
+		if(_presets) {
+			_presets[i] = 
 				SGameSettings(
 						i, 
 						name, 
@@ -409,7 +377,7 @@ bool Menu::LoadPresets(const char *path, SGameSettings *presets) {
 // ============ //
 // === LOAD === //
 // ============ //
-Grid *Menu::Load(const SGameSettings &preset) {
+Grid *Menu::LoadGrid(const SGameSettings &_preset) {
 
 	std::cout << 
 		CUR_SAVE 
@@ -429,14 +397,15 @@ Grid *Menu::Load(const SGameSettings &preset) {
 	}
 	
 	char path[256];
-	sprintf(path, "./Data/save_%d.dat", preset.m_id);
+	sprintf(path, "./Data/save_%d.dat", _preset.m_id);
 	
 	Grid *g = nullptr;
 	FILE *data = fopen(path, "rb");
 	if(data) {
 		g = new Grid();
-		fread(g, sizeof(Grid), 1, data);
+		fread(g, sizeof(Grid)-sizeof(std::thread), 1, data);
 		fclose(data);
+		g->StartCounter(false);
 	}
 
 	std::this_thread::sleep_for(500ms);
@@ -445,24 +414,3 @@ Grid *Menu::Load(const SGameSettings &preset) {
 	return g;
 }
 
-// ====================== //
-// === UPDATE COUNTER === //
-// ====================== //
-void Menu::UpdateCounter(int cur_pos) {
-
-	bool flip_flop = true;
-	while(m_currentGrid->GetState() == EGridState::NONE) {
-		if(m_pauseUpdate) {
-			std::cout << CUR_HIDE;
-			continue;
-		}
-		printf("%s", flip_flop ? CUR_SHOW : CUR_HIDE);
-		flip_flop = !flip_flop;
-		std::this_thread::sleep_for(500ms);
-		if(m_currentPreset.m_isTimed && m_startCounter && flip_flop) {
-			std::cout << CUR_SAVE CUR_HIDE;
-			printf(CUR_MOVE_TO COL_BF_GREEN "%03d" COL_DEFAULT, 2, cur_pos, ++m_currentPreset.m_timeElapsed);
-			std::cout << CUR_LOAD CUR_SHOW;
-		}
-	}
-}
