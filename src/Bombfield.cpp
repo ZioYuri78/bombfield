@@ -55,17 +55,13 @@ int main(int argc, char **argv) {
 
 			// NEW GAME
 			case 1:
-			{
 				grid = menu.NewGame(presetsPath);
 				break;
-			}
 
 			// LOAD GAME
 			case 2:
-			{
 				grid = menu.LoadGame();
 				break;
-			}
 
 			// QUIT
 			case 'q'-'0':
@@ -83,8 +79,6 @@ int main(int argc, char **argv) {
 		
 		int cursorRow = 1;
 		int cursorColumn = 1;
-		bool start_counter = false;
-		
 
 		std::cout << 
 			CLEAR_DISPLAY 
@@ -97,18 +91,9 @@ int main(int argc, char **argv) {
 
 		printf(DEC_MODE);
 
-
-		cursorRow = grid->GetStartRow() + grid->GetTopBorderSize();
-		cursorColumn = grid->GetStartColumn() + grid->GetLeftBorderSize();
-		printf(CUR_MOVE_TO, cursorRow, cursorColumn);
+		// Main Loop inside here
+		PoolInputs(menu);
 		
-
-		// Main loop
-		while(grid->GetState() == EGridState::NONE) {
-			PoolInputs(menu, cursorRow, cursorColumn);
-		}
-		
-
 		EGridState gridState = grid->GetState();
 		if(gridState == EGridState::WON || gridState == EGridState::LOST) {
 
@@ -153,71 +138,79 @@ int main(int argc, char **argv) {
 // =================== //
 // === POOL INPUTS === //
 // =================== //
-void PoolInputs(Menu &_menu, int &_curX, int &_curY) {
+void PoolInputs(Menu &_menu) {
 
 	Grid *grid = _menu.GetCurrentGrid();
 
-	switch (_getch()) {
+	int _curX = grid->GetStartRow() + grid->GetTopBorderSize();
+	int _curY = grid->GetStartColumn() + grid->GetLeftBorderSize();
+	printf(CUR_MOVE_TO, _curX, _curY);
 
-		case 224:
-			
-			switch(_getch()) {
-				case 72:
-					// UP
-					if(_curX > grid->GetStartRow() + grid->GetTopBorderSize()) {
-						_curX-=grid->GetRowStride();
-					}
-					break;
+	while(grid->GetState() == EGridState::NONE) {
 
-				case 75:
-					// LEFT
-					if(_curY > grid->GetStartColumn() + grid->GetLeftBorderSize()) {
-						_curY-=grid->GetColumnStride();
-					}
-					break;
+		switch (_getch()) {
 
-				case 77:
-					// RIGHT
-					if(_curY < grid->GetNumOfColumns()*grid->GetColumnStride() + grid->GetStartColumn() - grid->GetColumnStride()) {
-						_curY+=grid->GetColumnStride();
-					}
-					break;
+			case 224:
 
-				case 80:
-					// DOWN
-					if(_curX < grid->GetNumOfRows()*grid->GetRowStride() + grid->GetStartRow() - grid->GetRowStride()) {
-						_curX+=grid->GetRowStride();
-					}
-					break;
-			}
-			break;
-		
-		case 13:
-			// ENTER
-			std::cout << CUR_SAVE;
-			grid->EndGameConditions(_curX, _curY);
-			std::cout << CUR_LOAD;
-			grid->StartCounter();
-			break;
-		
-		case 's':
-		case 'S':
-			grid->PauseCursorAndCounter();
-			_menu.SaveGame(*_menu.GetCurrentPreset(), *grid);
-			grid->PauseCursorAndCounter();
-			break;
-		
-		case 'm':
-		case 'M':
-			grid->QuitGrid();
-			break;
+				switch(_getch()) {
+					case 72:
+						// UP
+						if(_curX > grid->GetStartRow() + grid->GetTopBorderSize()) {
+							_curX-=grid->GetRowStride();
+						}
+						break;
 
-		default:
-			// OTHER
-			break;
+					case 75:
+						// LEFT
+						if(_curY > grid->GetStartColumn() + grid->GetLeftBorderSize()) {
+							_curY-=grid->GetColumnStride();
+						}
+						break;
+
+					case 77:
+						// RIGHT
+						if(_curY < grid->GetNumOfColumns()*grid->GetColumnStride() + grid->GetStartColumn() - grid->GetColumnStride()) {
+							_curY+=grid->GetColumnStride();
+						}
+						break;
+
+					case 80:
+						// DOWN
+						if(_curX < grid->GetNumOfRows()*grid->GetRowStride() + grid->GetStartRow() - grid->GetRowStride()) {
+							_curX+=grid->GetRowStride();
+						}
+						break;
+				}
+				break;
+
+			case 13:
+				// ENTER
+				std::cout << CUR_SAVE;
+				grid->EndGameConditions(_curX, _curY);
+				std::cout << CUR_LOAD;
+				grid->StartCounter();
+				break;
+
+			case 's':
+			case 'S':
+				grid->PauseCursorAndCounter();
+				_menu.SaveGame(*_menu.GetCurrentPreset(), *grid);
+				grid->PauseCursorAndCounter();
+				break;
+
+			case 'm':
+			case 'M':
+				grid->QuitGrid();
+				break;
+
+			default:
+				// OTHER
+				break;
+		}
+
+		printf(CUR_MOVE_TO, _curX, _curY);
 	}
 
-	printf(CUR_MOVE_TO, _curX, _curY);
 }
 
 

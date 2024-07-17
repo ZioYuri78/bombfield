@@ -1,6 +1,7 @@
 #include <iostream>
 #include <ostream>
 #include <random>
+#include <thread>
 #include "VTS_table.h"
 #include "Grid.h"
 
@@ -37,8 +38,6 @@ std::ostream& operator<<(std::ostream& _os, const FCell &_cell) {
 }
 
 
-
-
 // ============ // 
 // === Grid === //
 // ============ //
@@ -63,9 +62,6 @@ Grid::Grid(
 	m_rowStride = 2;
 	m_columnStride = 4;
 	m_startRow = _startRow;
-
-	m_startColumn = _numOfColumns < 6 ? 3 : _startColumn;
-	
 	m_topBorderSize = 1;
 	m_leftBorderSize = 2;
 	m_bombsRatio = _bombsRatio;
@@ -75,10 +71,20 @@ Grid::Grid(
 	m_startCounter = false;
 	m_pauseCursorAndCounter = true;
 	
-	for(size_t i=0; i<_numOfRows; i++) {
-		for(size_t j=0; j<_numOfColumns; j++) {
-			m_cells[i][j].m_screenSpaceRow = (i*m_rowStride)+_startRow+m_topBorderSize;
-			m_cells[i][j].m_screenSpaceColumn = (j*m_columnStride)+_startColumn+m_leftBorderSize;
+	m_outerWidth = 
+		m_numOfColumns < 6 
+		? 6 * m_columnStride
+		: m_numOfColumns * m_columnStride;
+
+	m_startColumn = 
+		m_numOfColumns < 6
+		? ((m_outerWidth / 2) - ((m_numOfColumns * m_columnStride) / 2)) + 1
+		: _startColumn;
+
+	for(size_t i=0; i<m_numOfRows; i++) {
+		for(size_t j=0; j<m_numOfColumns; j++) {
+			m_cells[i][j].m_screenSpaceRow = (i * m_rowStride) + m_startRow + m_topBorderSize;
+			m_cells[i][j].m_screenSpaceColumn = (j * m_columnStride) + m_startColumn + m_leftBorderSize;
 		}
 	}
 
@@ -86,8 +92,8 @@ Grid::Grid(
 		
 		int x, y;
 		while(true) {
-			x = gen32()%_numOfRows;
-			y = gen32()%_numOfColumns;
+			x = gen32() % m_numOfRows;
+			y = gen32() % m_numOfColumns;
 			if(!m_cells[x][y].m_isBomb) {
 				break;
 			}
@@ -102,7 +108,7 @@ Grid::Grid(
 			m_cells[x+1][y+1].m_nearBombs++;
 		}else 
 		// Top Right
-		if(x == 0 && y == _numOfColumns-1) {
+		if(x == 0 && y == m_numOfColumns-1) {
 			m_cells[x+1][y].m_nearBombs++;
 			m_cells[x][y-1].m_nearBombs++;
 			m_cells[x+1][y-1].m_nearBombs++;
@@ -116,19 +122,19 @@ Grid::Grid(
 			m_cells[x+1][y+1].m_nearBombs++;
 		}else
 		// Bottom Left
-		if(x == _numOfRows-1 && y == 0) {
+		if(x == m_numOfRows-1 && y == 0) {
 			m_cells[x-1][y].m_nearBombs++;
 			m_cells[x][y+1].m_nearBombs++;
 			m_cells[x-1][y+1].m_nearBombs++;
 		}else
 		// Bottom Right
-		if(x == _numOfRows-1 && y == _numOfColumns-1) {
+		if(x == m_numOfRows-1 && y == m_numOfColumns-1) {
 			m_cells[x-1][y].m_nearBombs++;
 			m_cells[x][y-1].m_nearBombs++;
 			m_cells[x-1][y-1].m_nearBombs++;
 		}else
 		// Bottom Row
-		if(x == _numOfRows-1) {
+		if(x == m_numOfRows-1) {
 			m_cells[x][y-1].m_nearBombs++;
 			m_cells[x][y+1].m_nearBombs++;
 			m_cells[x-1][y-1].m_nearBombs++;
@@ -144,7 +150,7 @@ Grid::Grid(
 			m_cells[x+1][y+1].m_nearBombs++;
 		}else
 		// Right Column
-		if(y == _numOfColumns-1) {
+		if(y == m_numOfColumns-1) {
 			m_cells[x-1][y].m_nearBombs++;
 			m_cells[x+1][y].m_nearBombs++;
 			m_cells[x-1][y-1].m_nearBombs++;
@@ -269,10 +275,6 @@ void Grid::Draw() {
 	m_pauseCursorAndCounter = false;
 
 	// HEADER
-	m_outerWidth = 0;
-	m_numOfColumns < 6 
-		? m_outerWidth = 6 * m_columnStride
-		: m_outerWidth = m_numOfColumns * m_columnStride;
 
 	printf(DEC_CORNER_UL);
 	for(size_t hs = 0; hs < m_outerWidth-1; hs++) { std::cout << DEC_LINE_HOR;	}
@@ -348,10 +350,10 @@ void Grid::Draw() {
 	std::cout << '\n';
 
 	// FOOTER
-	m_outerWidth = 0;
-	m_numOfColumns < 6
-		? m_outerWidth = 6 * m_columnStride + 3
-		: m_outerWidth = (m_numOfColumns * m_columnStride) + 3;
+	m_outerWidth = 
+		m_numOfColumns < 6
+		? 6 * m_columnStride + 3
+		: (m_numOfColumns * m_columnStride) + 3;
 
 
 	printf( DEC_LINE_VERT " %s %*s " DEC_LINE_VERT "\n",
@@ -367,8 +369,8 @@ void Grid::Draw() {
 
 void Grid::EndGameConditions(int _x, int _y) {
 
-	_x = (_x - m_startRow)/m_rowStride;
-	_y = (_y - m_startColumn)/m_columnStride;
+	_x = (_x - m_startRow) / m_rowStride;
+	_y = (_y - m_startColumn) / m_columnStride;
 
 	EGridState grid_state = EGridState::NONE;
 
