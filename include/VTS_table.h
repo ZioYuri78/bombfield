@@ -78,7 +78,8 @@
 #define COL_F_MAGENTA			CSI"35m"
 #define COL_F_CYAN				CSI"36m"
 #define COL_F_WHITE				CSI"37m"
-#define COL_F_EXTENDED(r,g,b)	CSI"38;2;"#r";"#g";"#b"m"
+#define COL_F_EXTENDED			CSI"38;2;%d;%d;%dm"
+#define COL_F_EXTENDED_(r,g,b)	CSI"38;2;"#r";"#g";"#b"m"
 #define COL_F_DEFAULT			CSI"39m"
 
 // COL_B_* background
@@ -90,7 +91,8 @@
 #define COL_B_MAGENTA			CSI"45m"
 #define COL_B_CYAN				CSI"46m"
 #define COL_B_WHITE				CSI"47m"
-#define COL_B_EXTENDED(r,g,b)	CSI"48;2;"#r";"#g";"#b"m"
+#define COL_B_EXTENDED			CSI"48;2;%d;%d;%dm"
+#define COL_B_EXTENDED_(r,g,b)	CSI"48;2;"#r";"#g";"#b"m"
 #define COL_B_DEFAULT			CSI"49m"
 
 // COL_BF_* bold/bright foreground

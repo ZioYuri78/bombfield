@@ -82,7 +82,7 @@ void Menu::MainMenu() {
 
 	printf(DEC_LINE_VERT" %s %s %38s " DEC_LINE_VERT "\n",
 			COL_F_YELLOW "[1]" COL_BF_YELLOW "NEW" COL_DEFAULT,
-			m_savePresets ? COL_F_YELLOW "[2]" COL_BF_YELLOW "LOAD" : COL_F_EXTENDED(100, 75, 0) "[2]LOAD",
+			m_savePresets ? COL_F_YELLOW "[2]" COL_BF_YELLOW "LOAD" : COL_F_EXTENDED_(100, 75, 0) "[2]LOAD",
 			COL_F_YELLOW "[Q]" COL_BF_YELLOW "QUIT" COL_DEFAULT);
 
 	printf(DEC_CORNER_BL);
