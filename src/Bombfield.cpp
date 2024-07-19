@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
 			for(size_t i=0; i<8; i++) {
 
 				printf(DEC_LINE_VERT "%-*s" COL_F_YELLOW "%-*.*s" COL_BF_YELLOW "%-*.*s" COL_DEFAULT DEC_LINE_VERT "\r",
-						grid->GetOuterWidth() - 12,
+						grid->GetOuterWidth() - 9,
 						" ",
 						i < 4 ? 3 : 0,
 						(int)i,

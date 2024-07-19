@@ -275,7 +275,6 @@ void Grid::Draw() {
 	m_pauseCursorAndCounter = false;
 
 	// HEADER
-
 	printf(DEC_CORNER_UL);
 	for(size_t hs = 0; hs < m_outerWidth-1; hs++) { std::cout << DEC_LINE_HOR;	}
 	printf(DEC_CORNER_UR);
@@ -350,15 +349,9 @@ void Grid::Draw() {
 	std::cout << '\n';
 
 	// FOOTER
-	m_outerWidth = 
-		m_numOfColumns < 6
-		? 6 * m_columnStride + 3
-		: (m_numOfColumns * m_columnStride) + 3;
-
-
 	printf( DEC_LINE_VERT " %s %*s " DEC_LINE_VERT "\n",
 			COL_F_YELLOW "[S]" COL_BF_YELLOW "SAVE" COL_DEFAULT,
-			m_outerWidth,
+			m_outerWidth + 3,
 			COL_F_YELLOW "[M]" COL_BF_YELLOW "MENU" COL_DEFAULT
 		  );
 
@@ -456,8 +449,8 @@ void Grid::UpdateCursorAndCounter() {
 			printf(CUR_MOVE_TO COL_BF_GREEN "%03d" COL_DEFAULT, 
 					2, 
 					m_numOfColumns < 6
-					? (m_outerWidth/2)+4
-					: (m_outerWidth/2)+5, 
+					? (m_outerWidth/2)+5
+					: (m_outerWidth/2)+6, 
 					++m_timeElapsed
 					);
 
