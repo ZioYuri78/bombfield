@@ -1,232 +1,268 @@
 #include <iostream>
+#include <ostream>
 #include <random>
+#include <thread>
 #include "VTS_table.h"
 #include "Grid.h"
+
+using namespace std::chrono_literals;
 
 // =================== //
 // === Single cell === //
 // =================== //
 FCell::FCell() {
-	screen_space_row = -1;
-	screen_space_column = -1;
-	near_bombs = 0;
-	is_hidden = true; 
-	is_bomb = false;
+	m_screenSpaceRow = -1;
+	m_screenSpaceColumn = -1;
+	m_nearBombs = 0;
+	m_isHidden = true; 
+	m_isBomb = false;
 }
 
-FCell::~FCell(){}
+FCell::~FCell() {}
 
-std::ostream& operator<<(std::ostream& os, const FCell &cell) {
+std::ostream& operator<<(std::ostream& _os, const FCell &_cell) {
 
-	if(!cell.is_hidden) {
-		if(cell.is_bomb) {
-			os << COL_BF_RED "*" COL_DEFAULT;
-		} else if(cell.near_bombs > 0) {
-			os << COL_BF_YELLOW << cell.near_bombs << COL_DEFAULT; 
+	if(!_cell.m_isHidden) {
+		if(_cell.m_isBomb) {
+			_os << COL_BF_RED "*" COL_DEFAULT;
+		} else if(_cell.m_nearBombs > 0) {
+			_os << COL_BF_YELLOW << _cell.m_nearBombs << COL_DEFAULT; 
 		} else {
-			os << COL_B_BLACK " " COL_DEFAULT;
+			_os << COL_B_BLACK " " COL_DEFAULT;
 		}
 	} else {
-		os << COL_B_WHITE " " COL_DEFAULT;
+		_os << COL_B_WHITE " " COL_DEFAULT;
 	}
 
-	return os;
+	return _os;
 }
 
 
 // ============ // 
 // === Grid === //
 // ============ //
-Grid::Grid(int start_row /*= 1*/, int start_column /*= 1*/, int num_of_rows /*= 5*/, int num_of_columns /*= 5*/, float bombs_ratio /*= 0.1*/) {
+Grid::Grid(
+		int _startRow /*= 1*/, 
+		int _startColumn /*= 1*/, 
+		int _numOfRows /*= 5*/, 
+		int _numOfColumns /*= 5*/, 
+		float _bombsRatio /*= 0.1*/, 
+		bool _hasTimer /*= false*/, 
+		int _timeElapsed /* = 999*/
+		) {
 	
 	std::random_device rd;
 	std::mt19937 gen32(rd());
 
 	m_state = EGridState::NONE;
-	m_total_cells = num_of_rows * num_of_columns;
-	m_total_revealed = 0;
-	m_num_of_rows = num_of_rows;
-	m_num_of_columns = num_of_columns;
-	m_row_stride = 2;
-	m_column_stride = 4;
-	m_start_row = start_row;
-	m_start_column = start_column;
-	m_top_border_size = 1;
-	m_left_border_size = 2;
-	m_bombs_ratio = bombs_ratio;
-	m_total_bombs = ceil(m_total_cells * bombs_ratio);
+	m_totalCells = _numOfRows * _numOfColumns;
+	m_totalRevealed = 0;
+	m_numOfRows = _numOfRows;
+	m_numOfColumns = _numOfColumns;
+	m_rowStride = 2;
+	m_columnStride = 4;
+	m_startRow = _startRow;
+	m_topBorderSize = 1;
+	m_leftBorderSize = 2;
+	m_bombsRatio = _bombsRatio;
+	m_totalBombs = ceil(m_totalCells * _bombsRatio);
+	m_hasTimer = _hasTimer;
+	m_timeElapsed = _timeElapsed;
+	m_startCounter = false;
+	m_pauseCursorAndCounter = true;
 	
-	for(size_t i=0; i<num_of_rows; i++) {
-		for(size_t j=0; j<num_of_columns; j++) {
-			m_cells[i][j].screen_space_row = (i*m_row_stride)+start_row+m_top_border_size;
-			m_cells[i][j].screen_space_column = (j*m_column_stride)+start_column+m_left_border_size;
+	m_outerWidth = 
+		m_numOfColumns < 6 
+		? 6 * m_columnStride
+		: m_numOfColumns * m_columnStride;
+
+	m_startColumn = 
+		m_numOfColumns < 6
+		? ((m_outerWidth / 2) - ((m_numOfColumns * m_columnStride) / 2)) + 1
+		: _startColumn;
+
+	for(size_t i=0; i<m_numOfRows; i++) {
+		for(size_t j=0; j<m_numOfColumns; j++) {
+			m_cells[i][j].m_screenSpaceRow = (i * m_rowStride) + m_startRow + m_topBorderSize;
+			m_cells[i][j].m_screenSpaceColumn = (j * m_columnStride) + m_startColumn + m_leftBorderSize;
 		}
 	}
 
-	for(size_t b=0; b<m_total_bombs; b++){
+	for(size_t b=0; b<m_totalBombs; b++){
 		
 		int x, y;
 		while(true) {
-			x = gen32()%num_of_rows;
-			y = gen32()%num_of_columns;
-			if(!m_cells[x][y].is_bomb) {
+			x = gen32() % m_numOfRows;
+			y = gen32() % m_numOfColumns;
+			if(!m_cells[x][y].m_isBomb) {
 				break;
 			}
 		}
 
-		m_cells[x][y].is_bomb = true;
+		m_cells[x][y].m_isBomb = true;
 		
 		// Top Left
 		if(x == 0 && y == 0) {
-			m_cells[x+1][y].near_bombs++;
-			m_cells[x][y+1].near_bombs++;
-			m_cells[x+1][y+1].near_bombs++;
+			m_cells[x+1][y].m_nearBombs++;
+			m_cells[x][y+1].m_nearBombs++;
+			m_cells[x+1][y+1].m_nearBombs++;
 		}else 
 		// Top Right
-		if(x == 0 && y == num_of_columns-1) {
-			m_cells[x+1][y].near_bombs++;
-			m_cells[x][y-1].near_bombs++;
-			m_cells[x+1][y-1].near_bombs++;
+		if(x == 0 && y == m_numOfColumns-1) {
+			m_cells[x+1][y].m_nearBombs++;
+			m_cells[x][y-1].m_nearBombs++;
+			m_cells[x+1][y-1].m_nearBombs++;
 		}else
 		// Top Row
 		if(x == 0) {
-			m_cells[x][y-1].near_bombs++;
-			m_cells[x][y+1].near_bombs++;
-			m_cells[x+1][y-1].near_bombs++;
-			m_cells[x+1][y].near_bombs++;
-			m_cells[x+1][y+1].near_bombs++;
+			m_cells[x][y-1].m_nearBombs++;
+			m_cells[x][y+1].m_nearBombs++;
+			m_cells[x+1][y-1].m_nearBombs++;
+			m_cells[x+1][y].m_nearBombs++;
+			m_cells[x+1][y+1].m_nearBombs++;
 		}else
 		// Bottom Left
-		if(x == num_of_rows-1 && y == 0) {
-			m_cells[x-1][y].near_bombs++;
-			m_cells[x][y+1].near_bombs++;
-			m_cells[x-1][y+1].near_bombs++;
+		if(x == m_numOfRows-1 && y == 0) {
+			m_cells[x-1][y].m_nearBombs++;
+			m_cells[x][y+1].m_nearBombs++;
+			m_cells[x-1][y+1].m_nearBombs++;
 		}else
 		// Bottom Right
-		if(x == num_of_rows-1 && y == num_of_columns-1) {
-			m_cells[x-1][y].near_bombs++;
-			m_cells[x][y-1].near_bombs++;
-			m_cells[x-1][y-1].near_bombs++;
+		if(x == m_numOfRows-1 && y == m_numOfColumns-1) {
+			m_cells[x-1][y].m_nearBombs++;
+			m_cells[x][y-1].m_nearBombs++;
+			m_cells[x-1][y-1].m_nearBombs++;
 		}else
 		// Bottom Row
-		if(x == num_of_rows-1) {
-			m_cells[x][y-1].near_bombs++;
-			m_cells[x][y+1].near_bombs++;
-			m_cells[x-1][y-1].near_bombs++;
-			m_cells[x-1][y].near_bombs++;
-			m_cells[x-1][y+1].near_bombs++;
+		if(x == m_numOfRows-1) {
+			m_cells[x][y-1].m_nearBombs++;
+			m_cells[x][y+1].m_nearBombs++;
+			m_cells[x-1][y-1].m_nearBombs++;
+			m_cells[x-1][y].m_nearBombs++;
+			m_cells[x-1][y+1].m_nearBombs++;
 		}else
 		// Left Column
 		if(y == 0) {
-			m_cells[x-1][y].near_bombs++;
-			m_cells[x+1][y].near_bombs++;
-			m_cells[x-1][y+1].near_bombs++;
-			m_cells[x][y+1].near_bombs++;
-			m_cells[x+1][y+1].near_bombs++;
+			m_cells[x-1][y].m_nearBombs++;
+			m_cells[x+1][y].m_nearBombs++;
+			m_cells[x-1][y+1].m_nearBombs++;
+			m_cells[x][y+1].m_nearBombs++;
+			m_cells[x+1][y+1].m_nearBombs++;
 		}else
 		// Right Column
-		if(y == num_of_columns-1) {
-			m_cells[x-1][y].near_bombs++;
-			m_cells[x+1][y].near_bombs++;
-			m_cells[x-1][y-1].near_bombs++;
-			m_cells[x][y-1].near_bombs++;
-			m_cells[x+1][y-1].near_bombs++;
+		if(y == m_numOfColumns-1) {
+			m_cells[x-1][y].m_nearBombs++;
+			m_cells[x+1][y].m_nearBombs++;
+			m_cells[x-1][y-1].m_nearBombs++;
+			m_cells[x][y-1].m_nearBombs++;
+			m_cells[x+1][y-1].m_nearBombs++;
 		} else {
 			// If none of above the bomb is in the middle
-			m_cells[x-1][y-1].near_bombs++;
-			m_cells[x-1][y].near_bombs++;
-			m_cells[x-1][y+1].near_bombs++;
-			m_cells[x][y-1].near_bombs++;
-			m_cells[x][y+1].near_bombs++;
-			m_cells[x+1][y-1].near_bombs++;
-			m_cells[x+1][y].near_bombs++;
-			m_cells[x+1][y+1].near_bombs++;
+			m_cells[x-1][y-1].m_nearBombs++;
+			m_cells[x-1][y].m_nearBombs++;
+			m_cells[x-1][y+1].m_nearBombs++;
+			m_cells[x][y-1].m_nearBombs++;
+			m_cells[x][y+1].m_nearBombs++;
+			m_cells[x+1][y-1].m_nearBombs++;
+			m_cells[x+1][y].m_nearBombs++;
+			m_cells[x+1][y+1].m_nearBombs++;
 		}
+	}
+	
+
+
+	m_cursorAndCounterUpdater = std::thread(
+			&Grid::UpdateCursorAndCounter,
+			this);
+}
+
+
+Grid::~Grid() {
+	if(m_cursorAndCounterUpdater.joinable()) {
+		m_state = EGridState::QUIT;
+		m_cursorAndCounterUpdater.join();
 	}
 }
 
 
-Grid::~Grid() {}
-
-
-void Grid::RevealCell(int x, int y) {
+void Grid::RevealCell(int _x, int _y) {
 	
-	FCell &cell = m_cells[x][y];
-	if(!cell.is_hidden) return;
+	FCell &cell = m_cells[_x][_y];
+	if(!cell.m_isHidden) return;
 	
-	m_total_revealed++;
+	m_totalRevealed++;
 
-	cell.is_hidden = false;
-	printf(CUR_MOVE_TO, cell.screen_space_row, cell.screen_space_column);
+	cell.m_isHidden = false;
+	printf(CUR_MOVE_TO, cell.m_screenSpaceRow, cell.m_screenSpaceColumn);
 	std::cout << cell;
 
-	if(cell.near_bombs == 0) {
+	if(cell.m_nearBombs == 0) {
 		
 		// Top Left
-		if(x == 0 && y == 0) {
-			RevealCell(x+1, y);
-			RevealCell(x, y+1);
-			RevealCell(x+1, y+1);
+		if(_x == 0 && _y == 0) {
+			RevealCell(_x+1, _y);
+			RevealCell(_x, _y+1);
+			RevealCell(_x+1, _y+1);
 		}else 
 		// Top Right
-		if(x == 0 && y == m_num_of_columns-1) {
-			RevealCell(x+1, y);
-			RevealCell(x, y-1);
-			RevealCell(x+1, y-1);
+		if(_x == 0 && _y == m_numOfColumns-1) {
+			RevealCell(_x+1, _y);
+			RevealCell(_x, _y-1);
+			RevealCell(_x+1, _y-1);
 		}else
 		// Top Row
-		if(x == 0) {
-			RevealCell(x, y-1);
-			RevealCell(x, y+1);
-			RevealCell(x+1, y-1);
-			RevealCell(x+1, y);
-			RevealCell(x+1, y+1);
+		if(_x == 0) {
+			RevealCell(_x, _y-1);
+			RevealCell(_x, _y+1);
+			RevealCell(_x+1, _y-1);
+			RevealCell(_x+1, _y);
+			RevealCell(_x+1, _y+1);
 		}else
 		// Bottom Left
-		if(x == m_num_of_rows-1 && y == 0) {
-			RevealCell(x-1, y);
-			RevealCell(x, y+1);
-			RevealCell(x-1, y+1);
+		if(_x == m_numOfRows-1 && _y == 0) {
+			RevealCell(_x-1, _y);
+			RevealCell(_x, _y+1);
+			RevealCell(_x-1, _y+1);
 		}else
 		// Bottom Right
-		if(x == m_num_of_rows-1 && y == m_num_of_columns-1) {
-			RevealCell(x-1, y);
-			RevealCell(x, y-1);
-			RevealCell(x-1, y-1);
+		if(_x == m_numOfRows-1 && _y == m_numOfColumns-1) {
+			RevealCell(_x-1, _y);
+			RevealCell(_x, _y-1);
+			RevealCell(_x-1, _y-1);
 		}else
 		// Bottom Row
-		if(x == m_num_of_rows-1) {
-			RevealCell(x, y-1);
-			RevealCell(x, y+1);
-			RevealCell(x-1, y-1);
-			RevealCell(x-1, y);
-			RevealCell(x-1, y+1);
+		if(_x == m_numOfRows-1) {
+			RevealCell(_x, _y-1);
+			RevealCell(_x, _y+1);
+			RevealCell(_x-1, _y-1);
+			RevealCell(_x-1, _y);
+			RevealCell(_x-1, _y+1);
 		}else
 		// Left Column
-		if(y == 0) {
-			RevealCell(x-1, y);
-			RevealCell(x+1, y);
-			RevealCell(x-1, y+1);
-			RevealCell(x, y+1);
-			RevealCell(x+1, y+1);
+		if(_y == 0) {
+			RevealCell(_x-1, _y);
+			RevealCell(_x+1, _y);
+			RevealCell(_x-1, _y+1);
+			RevealCell(_x, _y+1);
+			RevealCell(_x+1, _y+1);
 		}else
 		// Right Column
-		if(y == m_num_of_columns-1) {
-			RevealCell(x-1, y);
-			RevealCell(x+1, y);
-			RevealCell(x-1, y-1);
-			RevealCell(x, y-1);
-			RevealCell(x+1, y-1);
+		if(_y == m_numOfColumns-1) {
+			RevealCell(_x-1, _y);
+			RevealCell(_x+1, _y);
+			RevealCell(_x-1, _y-1);
+			RevealCell(_x, _y-1);
+			RevealCell(_x+1, _y-1);
 		} else {
 			// Middle
-			RevealCell(x-1, y-1);
-			RevealCell(x-1, y);
-			RevealCell(x-1, y+1);
-			RevealCell(x, y-1);
-			RevealCell(x, y+1);
-			RevealCell(x+1, y-1);
-			RevealCell(x+1, y);
-			RevealCell(x+1, y+1);
+			RevealCell(_x-1, _y-1);
+			RevealCell(_x-1, _y);
+			RevealCell(_x-1, _y+1);
+			RevealCell(_x, _y-1);
+			RevealCell(_x, _y+1);
+			RevealCell(_x+1, _y-1);
+			RevealCell(_x+1, _y);
+			RevealCell(_x+1, _y+1);
 		}
 	}
 }
@@ -234,30 +270,60 @@ void Grid::RevealCell(int x, int y) {
 
 void Grid::Draw() {
 
-	printf(CUR_MOVE_TO DEC_MODE, m_start_row, m_start_column);
+	printf(DEC_MODE);
+
+	m_pauseCursorAndCounter = false;
+
+	// HEADER
+	printf(DEC_CORNER_UL);
+	for(size_t hs = 0; hs < m_outerWidth-1; hs++) { std::cout << DEC_LINE_HOR;	}
+	printf(DEC_CORNER_UR);
+	std::cout << "\n";
+
+	printf("%-*s " COL_BF_RED "[%03d]" COL_DEFAULT "  %2s  " COL_BF_GREEN "[%03d]" COL_DEFAULT " %*s\n",
+			m_numOfColumns < 6
+			? 3
+			: m_outerWidth/2 - 8,
+			DEC_LINE_VERT, 
+			m_totalBombs, 
+			":)", 
+			m_hasTimer ? m_timeElapsed : 999,
+			m_numOfColumns < 6
+			? 4
+			: m_outerWidth/2 - 9,
+			DEC_LINE_VERT
+		  );
+
+	printf(DEC_CORNER_BL);
+	for(size_t hs = 0; hs < m_outerWidth-1; hs++) { std::cout << DEC_LINE_HOR; }
+	printf(DEC_CORNER_BR);
+	std::cout << '\n';
+
+	// GRID
+	printf(CUR_MOVE_TO, m_startRow, m_startColumn);
 	
 	// Top Rows divisor
 	printf(DEC_CORNER_UL DEC_LINE_HOR DEC_LINE_HOR DEC_LINE_HOR DEC_LINE_HOR);
-	for(size_t k=0; k<m_num_of_columns-2; k++) {
+	for(size_t k=0; k<m_numOfColumns-2; k++) {
 		std::cout << DEC_LINE_HOR DEC_LINE_HOR DEC_LINE_HOR DEC_LINE_HOR;
 	}
 	printf(DEC_LINE_HOR DEC_LINE_HOR DEC_LINE_HOR DEC_CORNER_UR);
 
 	std::cout << '\n';
-	for(size_t j=0; j<m_num_of_rows-1; j++){				
+	for(size_t j=0; j<m_numOfRows-1; j++){				
 
 		// Row
-		printf(CUR_MOVE_HOR_ABS, m_start_column);
+		printf(CUR_MOVE_HOR_ABS, m_startColumn);
 		std::cout << DEC_LINE_VERT;
-		for(size_t c=0; c<m_num_of_columns; c++) {
+		for(size_t c=0; c<m_numOfColumns; c++) {
 			std::cout << ' ' << m_cells[j][c] << " " DEC_LINE_VERT;
 		}
 
 		// Middle Rows divisor
 		std::cout << '\n';
-		printf(CUR_MOVE_HOR_ABS, m_start_column);
+		printf(CUR_MOVE_HOR_ABS, m_startColumn);
 		printf(DEC_LINE_VERT);
-		for(size_t k=0; k<m_num_of_columns-1; k++) {
+		for(size_t k=0; k<m_numOfColumns-1; k++) {
 			std::cout << " " DEC_LINE_HOR "  ";
 		}
 		printf(" " DEC_LINE_HOR " " DEC_LINE_VERT);
@@ -265,50 +331,130 @@ void Grid::Draw() {
 	}
 
 	// Last Row
-	printf(CUR_MOVE_HOR_ABS, m_start_column);
+	printf(CUR_MOVE_HOR_ABS, m_startColumn);
 	std::cout << DEC_LINE_VERT;
-	for(size_t c=0; c<m_num_of_columns; c++) {
-		std::cout << ' ' << m_cells[m_num_of_rows-1][c] << " " DEC_LINE_VERT;
+	for(size_t c=0; c<m_numOfColumns; c++) {
+		std::cout << ' ' << m_cells[m_numOfRows-1][c] << " " DEC_LINE_VERT;
 	}
 	std::cout << '\n';
 	
 	// Bottom row divisor
-	printf(CUR_MOVE_HOR_ABS, m_start_column);
+	printf(CUR_MOVE_HOR_ABS, m_startColumn);
 	printf(DEC_CORNER_BL DEC_LINE_HOR DEC_LINE_HOR DEC_LINE_HOR DEC_LINE_HOR);
-	for(size_t k=0; k<m_num_of_columns-2; k++) {
+	for(size_t k=0; k<m_numOfColumns-2; k++) {
 		std::cout << DEC_LINE_HOR DEC_LINE_HOR DEC_LINE_HOR DEC_LINE_HOR;
 	}
 	printf(DEC_LINE_HOR DEC_LINE_HOR DEC_LINE_HOR DEC_CORNER_BR);
 
 	std::cout << '\n';
 
+	// FOOTER
+	printf( DEC_LINE_VERT " %s %*s " DEC_LINE_VERT "\n",
+			COL_F_YELLOW "[S]" COL_BF_YELLOW "SAVE" COL_DEFAULT,
+			m_outerWidth + 3,
+			COL_F_YELLOW "[M]" COL_BF_YELLOW "MENU" COL_DEFAULT
+		  );
+
 	printf(ASCII_MODE);
 
 }
 
 
-void Grid::EndGameConditions(int x, int y) {
+void Grid::EndGameConditions(int _x, int _y) {
+
+	_x = (_x - m_startRow) / m_rowStride;
+	_y = (_y - m_startColumn) / m_columnStride;
 
 	EGridState grid_state = EGridState::NONE;
 
 	auto RevealGrid = [&](){
-		for(size_t i=0; i<m_num_of_rows; i++) {
-			for(size_t j=0; j<m_num_of_columns; j++) {
+		for(size_t i=0; i<m_numOfRows; i++) {
+			for(size_t j=0; j<m_numOfColumns; j++) {
 				RevealCell(i, j);
 			}
 		}
 	};
 
-	if(m_cells[x][y].is_bomb) {
+	if(m_cells[_x][_y].m_isBomb) {
 		RevealGrid();
 		m_state = EGridState::LOST;
 	} else {
 
-		RevealCell(x, y);
+		RevealCell(_x, _y);
 
-		if(m_total_revealed == m_total_cells - m_total_bombs) {
+		if(m_totalRevealed == m_totalCells - m_totalBombs) {
 			RevealGrid();	
 			m_state = EGridState::WON;
+		}
+	}	
+
+	auto message = [&](const char *_msg) {
+			this->StopCounter();
+			int width = 0;
+			m_numOfColumns < 6
+				? width = 6 * m_columnStride 
+				: width = m_numOfColumns * m_columnStride;
+
+			printf(CUR_MOVE_TO_(2, 1));
+			std::printf("%*s", width, " ");
+			printf(CUR_MOVE_TO_(2, 1));
+			std::printf("%-*s%s%*s\n",
+					m_numOfColumns < 6
+					? 8
+					: width/2 - 4, 
+					DEC_LINE_VERT, 
+					_msg, 
+					m_numOfColumns < 6
+					? 9
+					: width/2 - 3, 
+					DEC_LINE_VERT
+					);
+		};
+
+		switch (m_state) {
+			case EGridState::WON:
+				message(WINDOW_TITLE("YOU WON!") COL_BF_GREEN "YOU WON!" COL_DEFAULT);
+				break;
+			case EGridState::LOST:
+				message(WINDOW_TITLE("BOOOOOM!") COL_BF_RED "BOOOOOM!" COL_DEFAULT);
+				break;
+			case EGridState::QUIT:
+			case EGridState::NONE:
+			default:
+				break;
+		}
+
+
+}
+
+
+void Grid::StopCounter() {
+	m_cursorAndCounterUpdater.join();
+}
+
+
+void Grid::UpdateCursorAndCounter() {
+
+	bool flip_flop = true;
+	while(m_state == EGridState::NONE) {
+		if(m_pauseCursorAndCounter) {
+			std::cout << CUR_HIDE;
+			continue;
+		}
+		printf("%s", flip_flop ? CUR_SHOW : CUR_HIDE);
+		flip_flop = !flip_flop;
+		std::this_thread::sleep_for(500ms);
+		if(m_hasTimer && m_startCounter && flip_flop) {
+			std::cout << CUR_SAVE CUR_HIDE;
+			printf(CUR_MOVE_TO COL_BF_GREEN "%03d" COL_DEFAULT, 
+					2, 
+					m_numOfColumns < 6
+					? (m_outerWidth/2)+5
+					: (m_outerWidth/2)+6, 
+					++m_timeElapsed
+					);
+
+			std::cout << CUR_LOAD CUR_SHOW;
 		}
 	}
 }

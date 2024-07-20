@@ -3,19 +3,19 @@
 
 namespace MyUtils {
 
-	inline int Min(int a, int b) {
-		return a < b ? a : b;
+	inline int Min(int _a, int _b) {
+		return _a < _b ? _a : _b;
 	}
 
-	inline int Max(int a, int b) {
-		return a > b ? a : b;
+	inline int Max(int _a, int _b) {
+		return _a > _b ? _a : _b;
 	}
 
-	inline int Clamp(int v, int min, int max) {
-		return Min(Max(v, min), max);
+	inline int Clamp(int _v, int _min, int _max) {
+		return Min(Max(_v, _min), _max);
 	}
 
-	inline float Clamp(float v, float min, float max) {
-		return fmin(fmax(v, min), max);
+	inline float Clamp(float _v, float _min, float _max) {
+		return fmin(fmax(_v, _min), _max);
 	}
 }
