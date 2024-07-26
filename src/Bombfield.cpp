@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 		printf(DEC_MODE);
 
 		// Main Loop inside here
-		PoolInputs(menu);
+		PoolInputs(menu, *grid);
 		
 		EGridState gridState = grid->GetState();
 		if(gridState == EGridState::WON || gridState == EGridState::LOST) {
@@ -138,15 +138,13 @@ int main(int argc, char **argv) {
 // =================== //
 // === POOL INPUTS === //
 // =================== //
-void PoolInputs(Menu &_menu) {
+void PoolInputs(Menu &_menu, Grid &grid) {
 
-	Grid *grid = _menu.GetCurrentGrid();
-
-	int _curX = grid->GetStartRow() + grid->GetTopBorderSize();
-	int _curY = grid->GetStartColumn() + grid->GetLeftBorderSize();
+	int _curX = grid.GetStartRow() + grid.GetTopBorderSize();
+	int _curY = grid.GetStartColumn() + grid.GetLeftBorderSize();
 	printf(CUR_MOVE_TO, _curX, _curY);
 
-	while(grid->GetState() == EGridState::NONE) {
+	while(grid.GetState() == EGridState::NONE) {
 
 		switch (_getch()) {
 
@@ -155,29 +153,29 @@ void PoolInputs(Menu &_menu) {
 				switch(_getch()) {
 					case 72:
 						// UP
-						if(_curX > grid->GetStartRow() + grid->GetTopBorderSize()) {
-							_curX-=grid->GetRowStride();
+						if(_curX > grid.GetStartRow() + grid.GetTopBorderSize()) {
+							_curX-=grid.GetRowStride();
 						}
 						break;
 
 					case 75:
 						// LEFT
-						if(_curY > grid->GetStartColumn() + grid->GetLeftBorderSize()) {
-							_curY-=grid->GetColumnStride();
+						if(_curY > grid.GetStartColumn() + grid.GetLeftBorderSize()) {
+							_curY-=grid.GetColumnStride();
 						}
 						break;
 
 					case 77:
 						// RIGHT
-						if(_curY < grid->GetNumOfColumns()*grid->GetColumnStride() + grid->GetStartColumn() - grid->GetColumnStride()) {
-							_curY+=grid->GetColumnStride();
+						if(_curY < grid.GetNumOfColumns()*grid.GetColumnStride() + grid.GetStartColumn() - grid.GetColumnStride()) {
+							_curY+=grid.GetColumnStride();
 						}
 						break;
 
 					case 80:
 						// DOWN
-						if(_curX < grid->GetNumOfRows()*grid->GetRowStride() + grid->GetStartRow() - grid->GetRowStride()) {
-							_curX+=grid->GetRowStride();
+						if(_curX < grid.GetNumOfRows()*grid.GetRowStride() + grid.GetStartRow() - grid.GetRowStride()) {
+							_curX+=grid.GetRowStride();
 						}
 						break;
 				}
@@ -186,21 +184,21 @@ void PoolInputs(Menu &_menu) {
 			case 13:
 				// ENTER
 				std::cout << CUR_SAVE;
-				grid->EndGameConditions(_curX, _curY);
+				grid.EndGameConditions(_curX, _curY);
 				std::cout << CUR_LOAD;
-				grid->StartCounter();
+				grid.StartCounter();
 				break;
 
 			case 's':
 			case 'S':
-				grid->PauseCursorAndCounter();
-				_menu.SaveGame(*_menu.GetCurrentPreset(), *grid);
-				grid->PauseCursorAndCounter();
+				grid.PauseCursorAndCounter();
+				_menu.SaveGame(*_menu.GetCurrentPreset(), grid);
+				grid.PauseCursorAndCounter();
 				break;
 
 			case 'm':
 			case 'M':
-				grid->QuitGrid();
+				grid.QuitGrid();
 				break;
 
 			default:

@@ -47,7 +47,6 @@ std::ostream& operator<<(std::ostream &_os, const SGameSettings &_gs) {
 
 Menu::Menu() {
 	m_savePresets = nullptr;
-	m_currentGrid = nullptr;
 };
 
 Menu::~Menu() {
@@ -55,12 +54,6 @@ Menu::~Menu() {
 	if(m_savePresets) {
 		delete[] m_savePresets;
 	}
-
-	// We deallocate the memory in the main
-	// loop (look at Bombfield.cpp)
-	
-	// delete m_currentGrid;
-	
 };
 
 void Menu::MainMenu() {
@@ -95,8 +88,6 @@ void Menu::MainMenu() {
 // === NEW GAME === //
 // ================ //
 Grid *Menu::NewGame(const char *_presetsPath) {
-
-	m_currentGrid = nullptr;
 
 	std::cout << CUR_MOVE_UP "\r";
 	printf(DEC_LINE_VERT " %s %44s " DEC_LINE_VERT "\n", 
@@ -147,11 +138,12 @@ Grid *Menu::NewGame(const char *_presetsPath) {
 	printf(DEC_CORNER_BR);
 
 	int value = 0;
+	Grid *tmpGrid = nullptr;
 	do{
 		value = _getch();
 		if(hasPresets && value >= '0' && value <= '9'){
 			m_currentPreset = gamePresets[value-'0'];
-			m_currentGrid = new Grid(
+			tmpGrid = new Grid(
 					4, 
 					1, 
 					m_currentPreset.m_numberOfRows,
@@ -164,7 +156,7 @@ Grid *Menu::NewGame(const char *_presetsPath) {
 		}
 	}while(value != 'b');
 
-	return m_currentGrid;
+	return tmpGrid;
 }
 
 
@@ -173,8 +165,8 @@ Grid *Menu::NewGame(const char *_presetsPath) {
 // ================= //
 Grid *Menu::LoadGame() {
 
-	m_currentGrid = nullptr;
-
+	Grid *tmpGrid = nullptr;
+	
 	if(m_savePresets) {
 		std::cout << CUR_MOVE_UP "\r";
 		printf(DEC_LINE_VERT " %s %43s " DEC_LINE_VERT "\n", 
@@ -212,27 +204,27 @@ Grid *Menu::LoadGame() {
 			value = _getch();
 			if(value >= '0' && value < (char)(m_maxSaves+'0')){
 				m_currentPreset = m_savePresets[value-'0'];
-				m_currentGrid = LoadGrid(m_currentPreset);
+				tmpGrid = LoadGrid(m_currentPreset);
 				break;
 			}
 		}while(value != 'b');
 	}
 
-	return m_currentGrid;
+	return tmpGrid;
 }
 
 
 // ================= //
 // === SAVE GAME === //
 // ================= //
-bool Menu::SaveGame(SGameSettings &preset, Grid &m_currentGrid) {
+bool Menu::SaveGame(SGameSettings &preset, Grid &grid) {
 	
 	int width = 0;
-	m_currentGrid.GetNumOfColumns() < 6 
-		? width = 6 * m_currentGrid.GetColumnStride() + 3 
-		: width = (m_currentGrid.GetNumOfColumns()*m_currentGrid.GetColumnStride()) + 3;
+	grid.GetNumOfColumns() < 6 
+		? width = 6 * grid.GetColumnStride() + 3 
+		: width = (grid.GetNumOfColumns()*grid.GetColumnStride()) + 3;
 	
-	int height = m_currentGrid.GetNumOfRows() * m_currentGrid.GetRowStride() + m_currentGrid.GetStartRow()+m_currentGrid.GetTopBorderSize();
+	int height = grid.GetNumOfRows() * grid.GetRowStride() + grid.GetStartRow()+grid.GetTopBorderSize();
 
 	std::cout << 
 		CUR_SAVE 
@@ -284,7 +276,7 @@ bool Menu::SaveGame(SGameSettings &preset, Grid &m_currentGrid) {
 		return false;
 	}
 
-	fwrite(&m_currentGrid, sizeof(Grid) - sizeof(std::thread), 1, data);
+	fwrite(&grid, sizeof(Grid) - sizeof(std::thread), 1, data);
 	fclose(data);
 
 	std::this_thread::sleep_for(500ms);
@@ -399,18 +391,18 @@ Grid *Menu::LoadGrid(const SGameSettings &_preset) {
 	char path[256];
 	sprintf(path, "./Data/save_%d.dat", _preset.m_id);
 	
-	Grid *g = nullptr;
+	Grid *tmpGrid = nullptr;
 	FILE *data = fopen(path, "rb");
 	if(data) {
-		g = new Grid();
-		fread(g, sizeof(Grid)-sizeof(std::thread), 1, data);
+		tmpGrid = new Grid();
+		fread(tmpGrid, sizeof(Grid)-sizeof(std::thread), 1, data);
 		fclose(data);
-		g->StartCounter(false);
+		tmpGrid->StartCounter(false);
 	}
 
 	std::this_thread::sleep_for(500ms);
 	std::cout << CUR_LOAD;
 
-	return g;
+	return tmpGrid;
 }
 

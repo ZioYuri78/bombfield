@@ -1,6 +1,8 @@
 #pragma once
 #include <ostream>
 
+class Grid;
+
 struct SGameSettings {
 
 	SGameSettings(){}
@@ -28,7 +30,6 @@ struct SGameSettings {
 	friend std::ostream& operator<<(std::ostream &_os, const SGameSettings &_gs);
 };
 
-class Grid;
 
 class Menu {
 
@@ -42,7 +43,6 @@ public:
 	bool SaveGame(SGameSettings &_preset, Grid &_grid);
 
 	inline SGameSettings *GetCurrentPreset() {return &m_currentPreset;}
-	inline Grid *GetCurrentGrid() {return m_currentGrid;}
 
 private:
 
@@ -53,5 +53,4 @@ private:
 	SGameSettings *m_savePresets;
 	SGameSettings m_currentPreset;
 	size_t m_maxSaves;
-	Grid *m_currentGrid;
 };
