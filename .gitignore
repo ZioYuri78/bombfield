@@ -38,10 +38,9 @@
 # Build folder
 build/
 
-<<<<<<< HEAD
-# Data folder
-=======
 #Data folder
->>>>>>> menu
 Data/
 data/
+
+#WinRAR
+*.rar
