@@ -3,5 +3,5 @@
 class Menu;
 class Grid;
 
-void PoolInputs(Menu &_menu, Grid &grid); 
+void PoolInputs(Menu &_menu, Grid &_grid); 
 

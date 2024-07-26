@@ -40,7 +40,7 @@ public:
 	void MainMenu();
 	Grid *NewGame(const char *_presetsPath);
 	Grid *LoadGame();
-	bool SaveGame(SGameSettings &_preset, Grid &_grid);
+	bool SaveGame(Grid &_grid, SGameSettings *_preset = nullptr);
 
 	inline SGameSettings *GetCurrentPreset() {return &m_currentPreset;}
 

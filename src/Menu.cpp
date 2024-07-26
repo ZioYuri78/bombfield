@@ -217,14 +217,14 @@ Grid *Menu::LoadGame() {
 // ================= //
 // === SAVE GAME === //
 // ================= //
-bool Menu::SaveGame(SGameSettings &preset, Grid &grid) {
+bool Menu::SaveGame(Grid &_grid, SGameSettings *_preset /* = nullptr */) {
 	
 	int width = 0;
-	grid.GetNumOfColumns() < 6 
-		? width = 6 * grid.GetColumnStride() + 3 
-		: width = (grid.GetNumOfColumns()*grid.GetColumnStride()) + 3;
+	_grid.GetNumOfColumns() < 6 
+		? width = 6 * _grid.GetColumnStride() + 3 
+		: width = (_grid.GetNumOfColumns()*_grid.GetColumnStride()) + 3;
 	
-	int height = grid.GetNumOfRows() * grid.GetRowStride() + grid.GetStartRow()+grid.GetTopBorderSize();
+	int height = _grid.GetNumOfRows() * _grid.GetRowStride() + _grid.GetStartRow()+_grid.GetTopBorderSize();
 
 	std::cout << 
 		CUR_SAVE 
@@ -258,17 +258,18 @@ bool Menu::SaveGame(SGameSettings &preset, Grid &grid) {
 	fseek(data, 0, SEEK_END);
 	size_t fileSize = ftell(data);
 	int numSaves = fileSize/sizeof(SGameSettings);
-	if(numSaves < preset.m_id + 1) {
-		preset.m_id = numSaves;
+	if(!_preset) _preset = &m_currentPreset;
+	if(numSaves < _preset->m_id + 1) {
+		_preset->m_id = numSaves;
 	}
-	offset = preset.m_id;
+	offset = _preset->m_id;
 
 	fseek(data, sizeof(SGameSettings)*offset, SEEK_SET);
-	fwrite(&preset, sizeof(SGameSettings), 1, data);
+	fwrite(_preset, sizeof(SGameSettings), 1, data);
 	fclose(data);
 
 	char path[256];
-	sprintf(path, "./Data/save_%d.dat", preset.m_id);
+	sprintf(path, "./Data/save_%d.dat", _preset->m_id);
 
 	data = fopen(path, "wb");
 	if(!data) {
@@ -276,7 +277,7 @@ bool Menu::SaveGame(SGameSettings &preset, Grid &grid) {
 		return false;
 	}
 
-	fwrite(&grid, sizeof(Grid) - sizeof(std::thread), 1, data);
+	fwrite(&_grid, sizeof(Grid) - sizeof(std::thread), 1, data);
 	fclose(data);
 
 	std::this_thread::sleep_for(500ms);
